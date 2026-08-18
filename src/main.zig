@@ -6,6 +6,13 @@ const PlayerBullet = @import("zig_invaders").PlayerBullet;
 const Invader = @import("zig_invaders").Invader;
 const InvaderBullet = @import("zig_invaders").InvaderBullet;
 
+const GameState = enum {
+    over,
+    won,
+    playing,
+    menu,
+};
+
 pub fn main() void {
     const config = GameConfig{
         // window
@@ -34,15 +41,16 @@ pub fn main() void {
         .invader_spacing_x = 60,
         .invader_spacing_y = 40,
         .invader_shoot_change = 5,
+        .invader_shoot_delay = 60,
         .invader_move_delay = 30,
         .invader_drop_distance = 20,
-        .invader_rows = 5,
-        .invader_columns = 11,
+        .invader_rows = 1,
+        .invader_columns = 2,
 
         // invader bullet
         .invader_bullet_height = 10,
         .invader_bullet_width = 4,
-        .invader_bullet_speed = 10,
+        .invader_bullet_speed = 5,
         .max_invader_bullets = 20,
 
         // shield
@@ -53,6 +61,14 @@ pub fn main() void {
         .shield_spacing_x = 150,
         .max_shields = 4,
     };
+
+    var game_state: GameState = GameState.playing;
+
+    var invader_move_timer: i32 = 0;
+    var invader_direction: i8 = 1;
+    var invader_shoot_timer: i32 = 0;
+
+    var score: i32 = 0;
 
     rl.initWindow(config.screen_width, config.screen_height, "Zig Invaders");
     rl.setTargetFPS(60);
@@ -119,6 +135,153 @@ pub fn main() void {
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.black);
+
+        if (game_state != GameState.playing) {
+            if (game_state == GameState.over) {
+                rl.drawText("GAME OVER", 270, 250, 40, rl.Color.red);
+            } else if (game_state == GameState.won) {
+                rl.drawText("YOU WON!", 270, 250, 40, rl.Color.yellow);
+            }
+
+            const score_text = rl.textFormat("Final Score %d", .{score});
+            rl.drawText(score_text, 285, 310, 30, rl.Color.white);
+            rl.drawText("Press ENTER to play again or ESC to quit", 180, 360, 20, rl.Color.green);
+
+            if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
+                // resetGame(&player, &bullets, &invader_bullets, &shields, &invaders, &invader_direction, &score, config);
+                game_state = GameState.playing;
+            }
+            continue;
+        }
+
+        // update logic --------------------------------------------
+
+        player.update();
+
+        // player shoots a new bullet
+        if (rl.isKeyPressed(rl.KeyboardKey.space)) {
+            for (&player_bullets) |*bullet| {
+                if (!bullet.active) {
+                    bullet.pos_x = player.pos_x + @divTrunc(player.width, 2) - @divTrunc(bullet.width, 2);
+                    bullet.pos_y = player.pos_y;
+                    bullet.active = true;
+                    break;
+                }
+            }
+        }
+
+        // update player bullets
+        for (&player_bullets) |*bullet| {
+            bullet.update();
+            if (!bullet.active) {
+                continue;
+            }
+            // check for invaders collision
+            outer_loop: for (&invaders) |*row| {
+                for (row) |*invader| {
+                    if (invader.alive and bullet.getRect().intersects(invader.getRect())) {
+                        bullet.active = false;
+                        invader.alive = false;
+                        score += 10;
+                        break :outer_loop;
+                    }
+                }
+            }
+            // check for shields collision
+            for (&shields) |*shield| {
+                if (shield.health > 0 and bullet.getRect().intersects(shield.getRect())) {
+                    bullet.active = false;
+                    shield.health -= 1;
+                    break;
+                }
+            }
+        }
+
+        // update invaders
+        invader_move_timer += 1;
+        if (invader_move_timer >= config.invader_move_delay) {
+            invader_move_timer = 0;
+            var hit_edge = false;
+            outer_loop: for (&invaders) |*row| {
+                for (row) |*invader| {
+                    if (!invader.alive) {
+                        continue;
+                    }
+                    const next_x = invader.pos_x + (config.invader_speed * invader_direction);
+                    if (next_x < 0 or next_x + config.invader_width > config.screen_width) {
+                        invader_direction *= -1;
+                        hit_edge = true;
+                        break :outer_loop;
+                    }
+                }
+            }
+            outer_loop: for (&invaders) |*row| {
+                for (row) |*invader| {
+                    if (hit_edge) {
+                        invader.update(0, config.invader_drop_distance);
+                    } else {
+                        invader.update(config.invader_speed * invader_direction, 0);
+                    }
+                    if (invader.alive and invader.getRect().intersects(player.getRect())) {
+                        game_state = GameState.over;
+                        break :outer_loop;
+                    }
+                }
+            }
+        }
+
+        var all_invaders_dead = true;
+        outer_loop: for (&invaders) |*row| {
+            for (row) |*invader| {
+                if (invader.alive) {
+                    all_invaders_dead = false;
+                    break :outer_loop;
+                }
+            }
+        }
+        if (all_invaders_dead) {
+            game_state = GameState.won;
+        }
+
+        // invader shoots a new bullet
+        invader_shoot_timer += 1;
+        if (invader_shoot_timer >= config.invader_shoot_delay) {
+            invader_shoot_timer = 0;
+            for (&invaders) |*row| {
+                for (row) |*invader| {
+                    if (invader.alive and rl.getRandomValue(0, 100) < config.invader_shoot_change) {
+                        for (&invader_bullets) |*bullet| {
+                            if (!bullet.active) {
+                                bullet.pos_x = invader.pos_x + @divTrunc(invader.width, 2) - @divTrunc(bullet.width, 2);
+                                bullet.pos_y = invader.pos_y + invader.height;
+                                bullet.active = true;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // update invader bullets
+        for (&invader_bullets) |*bullet| {
+            bullet.update(config.screen_height);
+            if (bullet.active) {
+                if (bullet.getRect().intersects(player.getRect())) {
+                    bullet.active = false;
+                    game_state = GameState.over;
+                    break;
+                }
+                for (&shields) |*shield| {
+                    if (shield.health > 0 and bullet.getRect().intersects(shield.getRect())) {
+                        bullet.active = false;
+                        shield.health -= 1;
+                        break;
+                    }
+                }
+            }
+        }
 
         // draw logic ----------------------------------------------
 

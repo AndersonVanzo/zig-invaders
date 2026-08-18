@@ -23,6 +23,9 @@ pub const Invader = struct {
     }
 
     pub fn draw(self: @This()) void {
+        if (!self.alive) {
+            return;
+        }
         rl.drawRectangle(
             self.pos_x,
             self.pos_y,

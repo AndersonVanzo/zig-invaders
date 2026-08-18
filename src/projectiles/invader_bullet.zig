@@ -47,8 +47,8 @@ pub const InvaderBullet = struct {
 
     pub fn getRect(self: @This()) Rectangle {
         return .{
-            .x = self.position_x,
-            .y = self.position_y,
+            .x = self.pos_x,
+            .y = self.pos_y,
             .height = self.height,
             .width = self.width,
         };
