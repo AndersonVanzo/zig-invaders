@@ -35,12 +35,12 @@ pub const PlayerBullet = struct {
         );
     }
 
-    pub fn update(self: *@This()) void {
+    pub fn update(self: *@This(), screen_height: i32) void {
         if (!self.active) {
             return;
         }
         self.pos_y += self.speed;
-        if (self.pos_y > 500) { // TODO: screen height
+        if (self.pos_y > screen_height) {
             self.active = false;
         }
     }
