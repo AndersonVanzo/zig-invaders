@@ -6,6 +6,7 @@ pub const Rectangle = @import("primitives/rectangle.zig").Rectangle;
 pub const Player = @import("entities/player.zig").Player;
 pub const Invader = @import("entities/invader.zig").Invader;
 pub const Shield = @import("entities/shield.zig").Shield;
+pub const PlayerBullet = @import("projectiles/player_bullet.zig").PlayerBullet;
 
 /// This is a documentation comment to explain the `printAnotherMessage` function below.
 ///
