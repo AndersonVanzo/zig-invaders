@@ -13,6 +13,72 @@ const GameState = enum {
     menu,
 };
 
+fn bootstrapGame(
+    player: *Player,
+    player_bullets: []PlayerBullet,
+    invaders: anytype,
+    invader_bullets: []InvaderBullet,
+    invader_direction: *i8,
+    shields: []Shield,
+    score: *i32,
+    config: GameConfig,
+) void {
+    score.* = 0;
+    invader_direction.* = 1;
+
+    player.* = Player.init(
+        config.player_start_x,
+        config.player_start_y,
+        config.player_height,
+        config.player_width,
+        config.player_speed,
+    );
+
+    for (player_bullets) |*bullet| {
+        bullet.* = PlayerBullet.init(
+            0,
+            0,
+            config.player_bullet_height,
+            config.player_bullet_width,
+            config.player_bullet_speed,
+        );
+    }
+
+    for (invaders, 0..) |*row, rowIndex| {
+        for (row, 0..) |*invader, colIndex| {
+            const pos_x = config.invader_start_x + @as(i32, @intCast(colIndex)) * config.invader_spacing_x;
+            const pos_y = config.invader_start_y + @as(i32, @intCast(rowIndex)) * config.invader_spacing_y;
+            invader.* = Invader.init(
+                pos_x,
+                pos_y,
+                config.invader_height,
+                config.invader_width,
+                config.invader_speed,
+            );
+        }
+    }
+
+    for (invader_bullets) |*bullet| {
+        bullet.* = InvaderBullet.init(
+            0,
+            0,
+            config.invader_bullet_height,
+            config.invader_bullet_width,
+            config.invader_bullet_speed,
+        );
+    }
+
+    for (shields, 0..) |*shield, index| {
+        const pos_x = config.shield_start_x + @as(i32, @intCast(index)) * config.shield_spacing_x;
+        shield.* = Shield.init(
+            pos_x,
+            config.shield_start_y,
+            config.shield_height,
+            config.shield_width,
+        );
+    }
+}
+
 pub fn main() void {
     const config = GameConfig{
         // window
@@ -62,7 +128,7 @@ pub fn main() void {
         .max_shields = 4,
     };
 
-    var game_state: GameState = GameState.playing;
+    var game_state: GameState = GameState.menu;
 
     var invader_move_timer: i32 = 0;
     var invader_direction: i8 = 1;
@@ -74,61 +140,13 @@ pub fn main() void {
     rl.setTargetFPS(60);
     defer rl.closeWindow();
 
-    var player = Player.init(
-        config.player_start_x,
-        config.player_start_y,
-        config.player_height,
-        config.player_width,
-        config.player_speed,
-    );
-
-    var shields: [config.max_shields]Shield = undefined;
-    for (&shields, 0..) |*shield, index| {
-        const pos_x = config.shield_start_x + @as(i32, @intCast(index)) * config.shield_spacing_x;
-        shield.* = Shield.init(
-            pos_x,
-            config.shield_start_y,
-            config.shield_height,
-            config.shield_width,
-        );
-    }
-
+    var player: Player = undefined;
     var player_bullets: [config.max_player_bullets]PlayerBullet = undefined;
-    for (&player_bullets) |*bullet| {
-        bullet.* = PlayerBullet.init(
-            0,
-            0,
-            config.player_bullet_height,
-            config.player_bullet_width,
-            config.player_bullet_speed,
-        );
-    }
 
     var invaders: [config.invader_rows][config.invader_columns]Invader = undefined;
-    for (&invaders, 0..) |*row, rowIndex| {
-        for (row, 0..) |*invader, colIndex| {
-            const pos_x = config.invader_start_x + @as(i32, @intCast(colIndex)) * config.invader_spacing_x;
-            const pos_y = config.invader_start_y + @as(i32, @intCast(rowIndex)) * config.invader_spacing_y;
-            invader.* = Invader.init(
-                pos_x,
-                pos_y,
-                config.invader_height,
-                config.invader_width,
-                config.invader_speed,
-            );
-        }
-    }
-
     var invader_bullets: [config.max_invader_bullets]InvaderBullet = undefined;
-    for (&invader_bullets) |*bullet| {
-        bullet.* = InvaderBullet.init(
-            0,
-            0,
-            config.invader_bullet_height,
-            config.invader_bullet_width,
-            config.invader_bullet_speed,
-        );
-    }
+
+    var shields: [config.max_shields]Shield = undefined;
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
@@ -141,14 +159,27 @@ pub fn main() void {
                 rl.drawText("GAME OVER", 270, 250, 40, rl.Color.red);
             } else if (game_state == GameState.won) {
                 rl.drawText("YOU WON!", 270, 250, 40, rl.Color.yellow);
+            } else if (game_state == GameState.menu) {
+                rl.drawText("ZIG INVADERS", 270, 250, 40, rl.Color.yellow);
             }
 
-            const score_text = rl.textFormat("Final Score %d", .{score});
-            rl.drawText(score_text, 285, 310, 30, rl.Color.white);
+            if (game_state != GameState.menu) {
+                const score_text = rl.textFormat("Final Score %d", .{score});
+                rl.drawText(score_text, 285, 310, 30, rl.Color.white);
+            }
             rl.drawText("Press ENTER to play again or ESC to quit", 180, 360, 20, rl.Color.green);
 
             if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
-                // resetGame(&player, &bullets, &invader_bullets, &shields, &invaders, &invader_direction, &score, config);
+                bootstrapGame(
+                    &player,
+                    &player_bullets,
+                    &invaders,
+                    &invader_bullets,
+                    &invader_direction,
+                    &shields,
+                    &score,
+                    config,
+                );
                 game_state = GameState.playing;
             }
             continue;
