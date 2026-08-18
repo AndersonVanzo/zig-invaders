@@ -21,16 +21,17 @@ pub const Shield = struct {
     }
 
     pub fn draw(self: @This()) void {
-        if (self.health > 0) {
-            const alpha = @as(u8, @intCast(@min(255, self.health * 25)));
-            rl.drawRectangle(
-                self.pos_x,
-                self.pos_y,
-                self.width,
-                self.height,
-                rl.Color.init(0, 255, 255, alpha),
-            );
+        if (self.health <= 0) {
+            return;
         }
+        const alpha = @as(u8, @intCast(@min(255, self.health * 25)));
+        rl.drawRectangle(
+            self.pos_x,
+            self.pos_y,
+            self.width,
+            self.height,
+            rl.Color.init(0, 255, 255, alpha),
+        );
     }
 
     pub fn getRect(self: @This()) Rectangle {

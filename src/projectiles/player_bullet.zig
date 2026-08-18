@@ -23,23 +23,25 @@ pub const PlayerBullet = struct {
     }
 
     pub fn draw(self: @This()) void {
-        if (self.active) {
-            rl.drawRectangle(
-                self.pos_x,
-                self.pos_y,
-                self.width,
-                self.height,
-                rl.Color.red,
-            );
+        if (!self.active) {
+            return;
         }
+        rl.drawRectangle(
+            self.pos_x,
+            self.pos_y,
+            self.width,
+            self.height,
+            rl.Color.red,
+        );
     }
 
     pub fn update(self: *@This()) void {
-        if (self.active) {
-            self.pos_y -= self.speed;
-            if (self.pos_y <= 0) {
-                self.active = false;
-            }
+        if (!self.active) {
+            return;
+        }
+        self.pos_y -= self.speed;
+        if (self.pos_y <= 0) {
+            self.active = false;
         }
     }
 
