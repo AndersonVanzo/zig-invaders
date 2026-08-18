@@ -1,5 +1,10 @@
 const rl = @import("raylib");
 const GameConfig = @import("zig_invaders").GameConfig;
+const Player = @import("zig_invaders").Player;
+const Shield = @import("zig_invaders").Shield;
+const PlayerBullet = @import("zig_invaders").PlayerBullet;
+const Invader = @import("zig_invaders").Invader;
+const InvaderBullet = @import("zig_invaders").InvaderBullet;
 
 pub fn main() void {
     const config = GameConfig{
@@ -50,12 +55,91 @@ pub fn main() void {
     };
 
     rl.initWindow(config.screen_width, config.screen_height, "Zig Invaders");
+    rl.setTargetFPS(60);
     defer rl.closeWindow();
+
+    var player = Player.init(
+        config.player_start_x,
+        config.player_start_y,
+        config.player_height,
+        config.player_width,
+        config.player_speed,
+    );
+
+    var shields: [config.max_shields]Shield = undefined;
+    for (&shields, 0..) |*shield, index| {
+        const pos_x = config.shield_start_x + @as(i32, @intCast(index)) * config.shield_spacing_x;
+        shield.* = Shield.init(
+            pos_x,
+            config.shield_start_y,
+            config.shield_height,
+            config.shield_width,
+        );
+    }
+
+    var player_bullets: [config.max_player_bullets]PlayerBullet = undefined;
+    for (&player_bullets) |*bullet| {
+        bullet.* = PlayerBullet.init(
+            0,
+            0,
+            config.player_bullet_height,
+            config.player_bullet_width,
+            config.player_bullet_speed,
+        );
+    }
+
+    var invaders: [config.invader_rows][config.invader_columns]Invader = undefined;
+    for (&invaders, 0..) |*row, rowIndex| {
+        for (row, 0..) |*invader, colIndex| {
+            const pos_x = config.invader_start_x + @as(i32, @intCast(colIndex)) * config.invader_spacing_x;
+            const pos_y = config.invader_start_y + @as(i32, @intCast(rowIndex)) * config.invader_spacing_y;
+            invader.* = Invader.init(
+                pos_x,
+                pos_y,
+                config.invader_height,
+                config.invader_width,
+                config.invader_speed,
+            );
+        }
+    }
+
+    var invader_bullets: [config.max_invader_bullets]InvaderBullet = undefined;
+    for (&invader_bullets) |*bullet| {
+        bullet.* = InvaderBullet.init(
+            0,
+            0,
+            config.invader_bullet_height,
+            config.invader_bullet_width,
+            config.invader_bullet_speed,
+        );
+    }
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.black);
+
+        // draw logic ----------------------------------------------
+
+        for (&shields) |*shield| {
+            shield.draw();
+        }
+
+        player.draw();
+
+        for (&player_bullets) |*bullet| {
+            bullet.draw();
+        }
+
+        for (&invader_bullets) |*invader_bullet| {
+            invader_bullet.draw();
+        }
+
+        for (&invaders) |*row| {
+            for (row) |*invader| {
+                invader.draw();
+            }
+        }
     }
 }
