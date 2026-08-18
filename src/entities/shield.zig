@@ -1,5 +1,5 @@
 const rl = @import("raylib");
-const Rectangle = @import("zig_invaders").Rectangle;
+const Rectangle = @import("../primitives/rectangle.zig").Rectangle;
 
 pub const Shield = struct {
     pos_x: i32,

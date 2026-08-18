@@ -47,9 +47,20 @@ pub fn build(b: *std.Build) void {
         // the root file.
         .root_source_file = b.path("src/root.zig"),
         // Later on we'll use this module as the root module of a test executable
-        // which requires us to specify a target.
+        // which requires us to specify a target and an optimize mode.
         .target = target,
+        .optimize = optimize,
+        // Import tables are per-module and are not inherited. Every file reached
+        // through root.zig lives in this module rather than the executable's
+        // root module, so raylib has to be wired in here too.
+        .imports = &.{
+            .{ .name = "raylib", .module = raylib },
+        },
     });
+
+    // Needed by `zig build test`, which uses this module as a test root module
+    // and therefore has to link raylib's C library itself.
+    mod.linkLibrary(raylib_artifact);
 
     // Here we define an executable. An executable needs to have a root module
     // which needs to expose a `main` function. While we could add a main function
