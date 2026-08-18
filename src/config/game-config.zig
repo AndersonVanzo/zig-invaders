@@ -42,4 +42,5 @@ pub const GameConfig = struct {
     shield_start_x: i32,
     shield_start_y: i32,
     shield_spacing_x: i32,
+    max_shields: u8,
 };

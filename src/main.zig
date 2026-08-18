@@ -46,6 +46,7 @@ pub fn main() void {
         .shield_start_x = 150,
         .shield_start_y = 450,
         .shield_spacing_x = 150,
+        .max_shields = 4,
     };
 
     rl.initWindow(config.screen_width, config.screen_height, "Zig Invaders");
