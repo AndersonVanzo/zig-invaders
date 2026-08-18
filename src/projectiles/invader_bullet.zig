@@ -1,7 +1,7 @@
 const rl = @import("raylib");
 const Rectangle = @import("zig_invaders").Rectangle;
 
-pub const PlayerBullet = struct {
+pub const InvaderBullet = struct {
     pos_x: i32,
     pos_y: i32,
 
